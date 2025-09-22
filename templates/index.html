@@ -1,0 +1,42 @@
+{% extends "base.html" %} {% block content %}
+<div class="row">
+  <div class="col-lg-8">
+    <div class="jumbotron bg-light p-4 rounded">
+      <h1 class="display-4">🚨 Disaster Response Platform</h1>
+      <p class="lead">Report emergencies, stay informed, save lives.</p>
+      {% if not current_user.is_authenticated %}
+      <a
+        class="btn btn-primary btn-lg"
+        href="{{ url_for('register') }}"
+        role="button"
+        >Get Started</a
+      >
+      {% else %}
+      <a
+        class="btn btn-success btn-lg"
+        href="{{ url_for('report_incident') }}"
+        role="button"
+        >Report Incident</a
+      >
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <h3>🚨 Active Alerts</h3>
+    {% for alert in alerts %}
+    <div class="card mb-2 alert-{{ alert.alert_type }}">
+      <div class="card-body">
+        <h6 class="card-title">{{ alert.title }}</h6>
+        <p class="card-text small">{{ alert.message[:100] }}...</p>
+        <small class="text-muted"
+          >{{ alert.created_at.strftime('%Y-%m-%d %H:%M') }}</small
+        >
+      </div>
+    </div>
+    {% else %}
+    <p class="text-muted">No active alerts</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

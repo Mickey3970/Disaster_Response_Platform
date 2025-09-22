@@ -1,0 +1,87 @@
+{% extends "base.html" %} {% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2>👤 My Dashboard</h2>
+  <a href="{{ url_for('report_incident') }}" class="btn btn-danger"
+    >🚨 Report Incident</a
+  >
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <h4>📋 My Reports ({{ reports|length }})</h4>
+    {% for report in reports %}
+    <div
+      class="card mb-3 {{ 'urgent-report' if report.is_urgent else 'normal-report' }}"
+    >
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="flex-grow-1">
+            <h5 class="card-title">
+              {{ report.title }} {% if report.is_urgent %}
+              <span class="badge bg-danger">URGENT</span>
+              {% else %}
+              <span class="badge bg-success">Normal</span>
+              {% endif %} {% if report.is_verified %}
+              <span class="badge bg-info">✅ Verified</span>
+              {% endif %}
+            </h5>
+            <p class="card-text">{{ report.description }}</p>
+            <small class="text-muted">
+              📅 {{ report.created_at.strftime('%Y-%m-%d %H:%M') }} {% if
+              report.latitude and report.longitude %} | 📍 {{
+              "%.4f"|format(report.latitude) }}, {{
+              "%.4f"|format(report.longitude) }} {% endif %}
+            </small>
+          </div>
+          {% if report.image_filename %}
+          <div class="ms-3">
+            <img
+              src="{{ url_for('static', filename='uploads/' + report.image_filename) }}"
+              alt="Report Image"
+              class="img-thumbnail"
+              style="max-width: 100px; max-height: 100px"
+            />
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="card">
+      <div class="card-body text-center">
+        <h5>No reports yet</h5>
+        <p>Click "Report Incident" to submit your first report</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="col-lg-4">
+    <h4>🚨 Active Alerts</h4>
+    {% for alert in alerts %}
+    <div class="card mb-2 alert-{{ alert.alert_type }}">
+      <div class="card-body">
+        <h6 class="card-title">
+          {{ alert.title }}
+          <span
+            class="badge bg-{{ 'danger' if alert.alert_type == 'red' else ('warning' if alert.alert_type == 'orange' else 'info') }}"
+          >
+            {{ alert.alert_type.upper() }}
+          </span>
+        </h6>
+        <p class="card-text small">{{ alert.message }}</p>
+        <small class="text-muted"
+          >{{ alert.created_at.strftime('%Y-%m-%d %H:%M') }}</small
+        >
+      </div>
+    </div>
+    {% else %}
+    <div class="card">
+      <div class="card-body text-center">
+        <p class="text-muted">No active alerts in your area</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

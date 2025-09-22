@@ -1,0 +1,202 @@
+{% extends "base.html" %} {% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2>🛡️ Admin Dashboard</h2>
+  <a href="{{ url_for('create_alert') }}" class="btn btn-warning"
+    >⚠️ Create Alert</a
+  >
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card bg-primary text-white">
+      <div class="card-body">
+        <h4>{{ total_reports }}</h4>
+        <p>Total Reports</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card bg-danger text-white">
+      <div class="card-body">
+        <h4>{{ urgent_reports }}</h4>
+        <p>Urgent Reports</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card bg-warning text-white">
+      <div class="card-body">
+        <h4>{{ unverified_reports }}</h4>
+        <p>Unverified</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card bg-info text-white">
+      <div class="card-body">
+        <h4>{{ active_alerts }}</h4>
+        <p>Active Alerts</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Map Section -->
+<div class="row">
+  <div class="col-12">
+    <div class="card mb-4">
+      <div class="card-header">
+        <h4>🗺️ Reports Heatmap</h4>
+        <small class="text-muted"
+          >Red pins = Urgent reports | Green pins = Normal reports | Blue
+          circles = Active alerts</small
+        >
+      </div>
+      <div class="card-body">
+        <div id="map"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Reports Table -->
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h4>📋 Recent Reports</h4>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Reporter</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for report in recent_reports %}
+              <tr class="{{ 'table-danger' if report.is_urgent else '' }}">
+                <td>{{ report.id }}</td>
+                <td>
+                  {{ report.title }} {% if report.image_filename %}
+                  <span class="badge bg-info">📷</span>
+                  {% endif %}
+                </td>
+                <td>{{ report.reporter.username }}</td>
+                <td>
+                  {% if report.is_urgent %}
+                  <span class="badge bg-danger">🚨 URGENT</span>
+                  {% else %}
+                  <span class="badge bg-success">Normal</span>
+                  {% endif %} {% if report.is_verified %}
+                  <span class="badge bg-info">✅ Verified</span>
+                  {% else %}
+                  <span class="badge bg-warning">Unverified</span>
+                  {% endif %}
+                </td>
+                <td>{{ report.created_at.strftime('%m/%d %H:%M') }}</td>
+                <td>
+                  <a
+                    href="{{ url_for('verify_report', report_id=report.id) }}"
+                    class="btn btn-sm btn-outline-primary"
+                  >
+                    {% if report.is_verified %}Unverify{% else %}Verify{% endif
+                    %}
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  // Initialize map
+  var map = L.map("map").setView([22.5726, 88.3639], 10); // Default to NYC
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors",
+  }).addTo(map);
+
+  // Load reports data
+  fetch("/api/reports")
+    .then((response) => response.json())
+    .then((reports) => {
+      reports.forEach((report) => {
+        var iconColor = report.is_urgent ? "red" : "green";
+        var marker = L.circleMarker([report.latitude, report.longitude], {
+          color: iconColor,
+          fillColor: iconColor,
+          fillOpacity: 0.7,
+          radius: report.is_urgent ? 10 : 6,
+        }).addTo(map);
+
+        var popupContent = `
+                <strong>${report.title}</strong><br>
+                ${report.description}<br>
+                <small><strong>Reporter:</strong> ${report.reporter}</small><br>
+                <small><strong>Status:</strong> ${
+                  report.is_urgent ? "🚨 URGENT" : "Normal"
+                } ${report.is_verified ? "✅" : "⚠️"}</small><br>
+                <small><strong>Date:</strong> ${report.created_at}</small>
+            `;
+        marker.bindPopup(popupContent);
+      });
+
+      // Auto-fit map to show all reports
+      if (reports.length > 0) {
+        var group = new L.featureGroup(map._layers);
+        if (Object.keys(group._layers).length > 0) {
+          map.fitBounds(group.getBounds().pad(0.1));
+        }
+      }
+    })
+    .catch((error) => console.error("Error loading reports:", error));
+
+  // Load active alerts
+  fetch("/api/alerts")
+    .then((response) => response.json())
+    .then((alerts) => {
+      alerts.forEach((alert) => {
+        if (alert.latitude && alert.longitude) {
+          var alertColor =
+            alert.alert_type === "red"
+              ? "#dc3545"
+              : alert.alert_type === "orange"
+              ? "#fd7e14"
+              : "#0dcaf0";
+
+          var circle = L.circle([alert.latitude, alert.longitude], {
+            color: alertColor,
+            fillColor: alertColor,
+            fillOpacity: 0.2,
+            radius: alert.radius * 1000, // Convert km to meters
+          }).addTo(map);
+
+          var popupContent = `
+                    <strong>🚨 ${alert.title}</strong><br>
+                    ${alert.message}<br>
+                    <small><strong>Level:</strong> ${alert.alert_type.toUpperCase()}</small><br>
+                    <small><strong>Radius:</strong> ${
+                      alert.radius
+                    } km</small><br>
+                    <small><strong>Date:</strong> ${alert.created_at}</small>
+                `;
+          circle.bindPopup(popupContent);
+        }
+      });
+    })
+    .catch((error) => console.error("Error loading alerts:", error));
+</script>
+{% endblock %}

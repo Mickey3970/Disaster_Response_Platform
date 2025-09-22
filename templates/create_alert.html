@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h3>⚠️ Create Emergency Alert</h3>
+            </div>
+            <div class="card-body">
+                <!-- Debug info (remove after testing) -->
+                <div class="alert alert-info">
+                    <strong>🔧 Debug Mode:</strong> Check browser console (F12) for detailed logs.
+                </div>
+                
+                <form method="POST" id="alertForm">
+                    <!-- Title Field -->
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Alert Title *</label>
+                        <input type="text" class="form-control" name="title" id="title" required 
+                               placeholder="e.g., Flood Warning - Downtown Area"
+                               value="{{ request.form.get('title', '') }}">
+                        <div class="form-text">Brief, descriptive title for the alert</div>
+                    </div>
+                    
+                    <!-- Message Field -->
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Alert Message *</label>
+                        <textarea class="form-control" name="message" id="message" rows="4" required
+                                  placeholder="Detailed information about the emergency situation and recommended actions...">{{ request.form.get('message', '') }}</textarea>
+                        <div class="form-text">Detailed instructions for citizens</div>
+                    </div>
+                    
+                    <!-- Alert Level -->
+                    <div class="mb-3">
+                        <label for="alert_type" class="form-label">Alert Level *</label>
+                        <select class="form-select" name="alert_type" id="alert_type" required>
+                            <option value="">Select alert level</option>
+                            <option value="red" {% if request.form.get('alert_type') == 'red' %}selected{% endif %}>
+                                🔴 RED - Immediate Danger
+                            </option>
+                            <option value="orange" {% if request.form.get('alert_type') == 'orange' %}selected{% endif %}>
+                                🟠 ORANGE - High Risk
+                            </option>
+                            <option value="yellow" {% if request.form.get('alert_type') == 'yellow' %}selected{% endif %}>
+                                🟡 YELLOW - Caution
+                            </option>
+                        </select>
+                        <div class="form-text">Choose appropriate severity level</div>
+                    </div>
+                    
+                    <!-- Location Section -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5>📍 Location (Optional)</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label for="latitude" class="form-label">Latitude</label>
+                                    <input type="number" step="any" class="form-control" name="latitude" id="latitude"
+                                           placeholder="40.7128" value="{{ request.form.get('latitude', '') }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="longitude" class="form-label">Longitude</label>
+                                    <input type="number" step="any" class="form-control" name="longitude" id="longitude"
+                                           placeholder="-74.0060" value="{{ request.form.get('longitude', '') }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="radius" class="form-label">Radius (km)</label>
+                                    <input type="number" step="0.1" min="0.1" class="form-control" name="radius" id="radius"
+                                           value="{{ request.form.get('radius', '5.0') }}">
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-outline-info" id="getLocation">
+                                    📍 Get Current Location
+                                </button>
+                                <span id="locationStatus" class="ms-2 text-muted"></span>
+                            </div>
+                            
+                            <div class="form-text mt-2">
+                                <small>Leave coordinates empty for city-wide alert. Radius determines affected area.</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Warning -->
+                    <div class="alert alert-warning">
+                        <strong>⚠️ Important:</strong> This alert will be immediately visible to all citizens. 
+                        Ensure the information is accurate and the alert level is appropriate.
+                    </div>
+                    
+                    <!-- Buttons -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-danger" id="submitBtn">
+                            🚨 Create Alert
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Help Panel -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>📋 Alert Level Guide</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <span class="badge bg-danger fs-6">🔴 RED</span>
+                    <p class="mt-1"><small>Immediate threat to life and property. Take action now.</small></p>
+                    <small class="text-muted">Examples: Active tornado, building collapse, chemical spill</small>
+                </div>
+                <div class="mb-3">
+                    <span class="badge bg-warning text-dark fs-6">🟠 ORANGE</span>
+                    <p class="mt-1"><small>High likelihood of dangerous conditions. Prepare to take action.</small></p>
+                    <small class="text-muted">Examples: Severe storm approaching, flood warning</small>
+                </div>
+                <div class="mb-3">
+                    <span class="badge bg-info fs-6">🟡 YELLOW</span>
+                    <p class="mt-1"><small>Potential for dangerous conditions. Stay informed and prepared.</small></p>
+                    <small class="text-muted">Examples: Weather advisory, traffic disruption</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Section -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5>🧪 Quick Test</h5>
+            </div>
+            <div class="card-body">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="fillTestData">
+                    Fill Test Data
+                </button>
+                <small class="d-block mt-2 text-muted">Click to fill form with sample alert data for testing</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Debug logging
+console.log('Create Alert page loaded');
+
+// Get My Location functionality
+document.getElementById('getLocation').addEventListener('click', function() {
+    console.log('Get location clicked');
+    const statusSpan = document.getElementById('locationStatus');
+    const latInput = document.getElementById('latitude');
+    const lngInput = document.getElementById('longitude');
+    
+    if (navigator.geolocation) {
+        statusSpan.textContent = 'Getting location...';
+        statusSpan.className = 'ms-2 text-info';
+        
+        navigator.geolocation.getCurrentPosition(function(position) {
+            console.log('Location obtained:', position.coords.latitude, position.coords.longitude);
+            latInput.value = position.coords.latitude.toFixed(6);
+            lngInput.value = position.coords.longitude.toFixed(6);
+            statusSpan.textContent = '✅ Location obtained';
+            statusSpan.className = 'ms-2 text-success';
+        }, function(error) {
+            console.error('Location error:', error);
+            statusSpan.textContent = '❌ Location access denied';
+            statusSpan.className = 'ms-2 text-danger';
+        });
+    } else {
+        console.error('Geolocation not supported');
+        statusSpan.textContent = '❌ Geolocation not supported';
+        statusSpan.className = 'ms-2 text-danger';
+    }
+});
+
+// Fill test data functionality
+document.getElementById('fillTestData').addEventListener('click', function() {
+    console.log('Filling test data');
+    document.getElementById('title').value = 'Test Emergency Alert';
+    document.getElementById('message').value = 'This is a test alert created for demonstration purposes. Please ignore.';
+    document.getElementById('alert_type').value = 'yellow';
+    document.getElementById('latitude').value = '40.7128';
+    document.getElementById('longitude').value = '-74.0060';
+    document.getElementById('radius').value = '3.0';
+});
+
+// Form submission debugging
+document.getElementById('alertForm').addEventListener('submit', function(e) {
+    console.log('Form being submitted...');
+    
+    // Get form values
+    const title = document.getElementById('title').value.trim();
+    const message = document.getElementById('message').value.trim();
+    const alertType = document.getElementById('alert_type').value;
+    const latitude = document.getElementById('latitude').value.trim();
+    const longitude = document.getElementById('longitude').value.trim();
+    const radius = document.getElementById('radius').value.trim();
+    
+    console.log('Form values:', {
+        title: title,
+        message: message,
+        alertType: alertType,
+        latitude: latitude,
+        longitude: longitude,
+        radius: radius
+    });
+    
+    // Basic validation
+    if (!title) {
+        alert('Please enter an alert title');
+        e.preventDefault();
+        return;
+    }
+    
+    if (!message) {
+        alert('Please enter an alert message');
+        e.preventDefault();
+        return;
+    }
+    
+    if (!alertType) {
+        alert('Please select an alert level');
+        e.preventDefault();
+        return;
+    }
+    
+    // Disable submit button to prevent double submission
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '⏳ Creating Alert...';
+    
+    console.log('Form validation passed, submitting...');
+});
+</script>
+{% endblock %}
